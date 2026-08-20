@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Animations Design</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Custom Animations CSS -->
+    <link rel="stylesheet" href="animations.css">
+</head>
+<body>
+
+    <!-- Floating Background Orbs -->
+    <div class="orb-container">
+        <div class="orb orb-orange"></div>
+        <div class="orb orb-white"></div>
+    </div>
+
+    <div class="container py-5 position-relative z-1">
+        <!-- Section 1: Animated Text -->
+        <div class="text-center mb-5 pb-4 border-bottom border-secondary border-opacity-25">
+            <h1 class="display-4 fw-bold animated-text mb-3">Next-Gen CSS Animations</h1>
+            <p class="lead text-white-50">Beautiful, performant 3D effects built with pure CSS and Bootstrap 5.</p>
+        </div>
+
+        <!-- Section 2: 3D Hover Cards -->
+        <h3 class="mb-4 text-white">Interactive 3D Cards</h3>
+        <div class="row g-4 mb-5 pb-4 border-bottom border-secondary border-opacity-25">
+            <div class="col-md-4">
+                <div class="card-3d text-center">
+                    <i class="bi bi-layers-fill card-3d-icon"></i>
+                    <h4>Glassmorphism</h4>
+                    <p>Cards that pop out on hover using translateZ and box-shadow transitions.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-3d text-center">
+                    <i class="bi bi-gpu-card card-3d-icon"></i>
+                    <h4>Hardware Accelerated</h4>
+                    <p>Smooth 60fps animations utilizing transform and perspective CSS properties.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card-3d text-center">
+                    <i class="bi bi-palette-fill card-3d-icon"></i>
+                    <h4>Dynamic Colors</h4>
+                    <p>Designed around the core Orange, White, and Dark Gray enterprise palette.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 3: Buttons & Loaders -->
+        <div class="row">
+            <div class="col-md-6 text-center">
+                <h3 class="mb-4 text-white">Glowing Buttons</h3>
+                <div class="p-5 bg-black bg-opacity-25 rounded-4 border border-secondary border-opacity-25">
+                    <button class="btn btn-glow">Hover Me</button>
+                    <p class="text-white-50 mt-4 small">Watch the background fill from left to right with a glowing shadow.</p>
+                </div>
+            </div>
+            
+            <div class="col-md-6 text-center mt-4 mt-md-0">
+                <h3 class="mb-4 text-white">CSS Loaders</h3>
+                <div class="p-5 bg-black bg-opacity-25 rounded-4 border border-secondary border-opacity-25 d-flex flex-column align-items-center justify-content-center">
+                    <div class="loader-spinner"></div>
+                    <p class="text-white-50 mt-4 small">Infinite rotating spinner for loading states.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <!-- Animated Dot Background -->
+    <canvas id="dot-canvas"></canvas>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    <script>
+      (function () {
+        const canvas = document.getElementById('dot-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Styling
+        canvas.style.position = 'fixed';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.zIndex = '-1';
+        canvas.style.pointerEvents = 'none';
+
+        const DOT_SPACING   = 28;   // grid spacing px
+        const DOT_BASE_R    = 1.5;  // base dot radius
+        const DOT_MAX_R     = 5;    // max radius near mouse
+        const INFLUENCE_R   = 120;  // mouse attraction radius
+        const COLOR_LIGHT   = 'rgba(255,107,53,ALPHA)';
+        const COLOR_DARK    = 'rgba(255,138,92,ALPHA)';
+        const BG_LIGHT      = '#f9fafb';
+        const BG_DARK       = '#0f172a';
+
+        let mouse = { x: -9999, y: -9999 };
+        let dots  = [];
+        let W, H;
+
+        function isDark() {
+          return document.documentElement.classList.contains('dark');
+        }
+
+        function resize() {
+          W = canvas.width  = window.innerWidth;
+          H = canvas.height = window.innerHeight;
+          buildDots();
+        }
+
+        function buildDots() {
+          dots = [];
+          const cols = Math.ceil(W / DOT_SPACING) + 1;
+          const rows = Math.ceil(H / DOT_SPACING) + 1;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              dots.push({ x: c * DOT_SPACING, y: r * DOT_SPACING, phase: Math.random() * Math.PI * 2 });
+            }
+          }
+        }
+
+        function draw(ts) {
+          const dark = isDark();
+          ctx.clearRect(0, 0, W, H);
+
+          // background fill
+          ctx.fillStyle = dark ? BG_DARK : BG_LIGHT;
+          ctx.fillRect(0, 0, W, H);
+
+          const colorTemplate = dark ? COLOR_DARK : COLOR_LIGHT;
+          const t = ts * 0.0008;
+
+          for (const d of dots) {
+            const dx   = d.x - mouse.x;
+            const dy   = d.y - mouse.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            // Proximity influence (0–1)
+            const prox = dist < INFLUENCE_R ? 1 - dist / INFLUENCE_R : 0;
+
+            // Slow pulse wave
+            const wave = 0.5 + 0.5 * Math.sin(t + d.phase);
+
+            const radius  = DOT_BASE_R + prox * (DOT_MAX_R - DOT_BASE_R) * 0.9 + wave * 0.4;
+            const alpha   = 0.18 + prox * 0.65 + wave * 0.08;
+
+            ctx.beginPath();
+            ctx.arc(d.x, d.y, radius, 0, Math.PI * 2);
+            ctx.fillStyle = colorTemplate.replace('ALPHA', alpha.toFixed(2));
+            ctx.fill();
+          }
+
+          requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('mousemove', e => {
+          mouse.x = e.clientX;
+          mouse.y = e.clientY;
+        });
+        window.addEventListener('mouseleave', () => {
+          mouse.x = -9999;
+          mouse.y = -9999;
+        });
+        window.addEventListener('resize', resize);
+
+        resize();
+        requestAnimationFrame(draw);
+      })();
+    </script>
+  </body>
+</html>
