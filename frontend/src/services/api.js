@@ -11,9 +11,24 @@ const api = axios.create({
 // Interceptor to attach JWT token to every request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    // Endpoints that should not include the Authorization header
+    const noAuthEndpoints = [
+      '/accounts/login/', 
+      '/accounts/register/', 
+      '/accounts/token/refresh/', 
+      '/accounts/verify-otp/', 
+      '/accounts/resend-otp/', 
+      '/accounts/request-password-reset/', 
+      '/accounts/confirm-password-reset/'
+    ];
+    
+    const requiresAuth = !noAuthEndpoints.some(endpoint => config.url?.includes(endpoint));
+    
+    if (requiresAuth) {
+      const token = localStorage.getItem('access_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
@@ -74,9 +89,7 @@ api.interceptors.response.use(
         // If there are specific field errors, stringify them or provide them directly
         // Some components might look for err.response.data.detail
         // Keep the original object structure but replace response.data with errData.errors
-        // Actually, just returning error with the custom payload is fine, but we need
-        // to make sure detail is populated if it was used.
-        error.response.data = { ...errData.errors, detail: errData.message };
+        error.response.data = { detail: errData.message, ...errData.errors };
       }
     }
     
