@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// Use environment variable for API base URL (set VITE_API_URL in .env or Render dashboard)
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+
 // Create Axios instance with base URL
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000/api', // Match the Django server URL
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -57,7 +60,7 @@ api.interceptors.response.use(
         const refreshToken = localStorage.getItem('refresh_token');
         if (refreshToken) {
           // Attempt to refresh the token
-          const res = await axios.post('http://127.0.0.1:8000/api/accounts/token/refresh/', {
+          const res = await axios.post(`${API_BASE_URL}/accounts/token/refresh/`, {
             refresh: refreshToken,
           });
           
