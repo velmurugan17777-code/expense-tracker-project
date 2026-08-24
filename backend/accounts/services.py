@@ -19,8 +19,10 @@ class UserService:
         validated.pop('password_confirm', None)
         user = UserRepository.create_user(validated)
         
-        # Generate a single OTP and send via both SMS (mock) and Email
-        UserService._generate_and_dispatch_otp(user)
+        # Auto-verify user — no OTP step required
+        user.is_email_verified = True
+        user.is_mobile_verified = True
+        user.save()
 
         return {
             'id': str(user.id),
@@ -146,8 +148,6 @@ class UserService:
             )
             raise ValidationError({'detail': 'Invalid credentials.'})
 
-        if not user.is_mobile_verified or not user.is_email_verified:
-            raise PermissionDenied({'detail': 'Account not verified. Please verify your OTP/Email.'})
 
         user.failed_login_attempts = 0
         user.locked_until = None

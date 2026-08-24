@@ -16,6 +16,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const verified = params.get('verified');
+  const registered = params.get('registered');
 
   const tabIcons = { email: FiMail, mobile: FiPhone, username: FiUser };
   const tabPlaceholders = { email: 'Enter your email', mobile: 'Enter mobile number', username: 'Enter username' };
@@ -45,6 +46,11 @@ const Login = () => {
         {verified && (
           <div className="alert alert-success rounded-xl mb-3 d-flex align-items-center gap-2" role="alert">
             ✅ Account verified! Please log in.
+          </div>
+        )}
+        {registered && (
+          <div className="alert alert-success rounded-xl mb-3 d-flex align-items-center gap-2" role="alert">
+            🎉 Account created successfully! Please log in.
           </div>
         )}
 

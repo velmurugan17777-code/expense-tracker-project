@@ -35,7 +35,7 @@ const Register = () => {
     setLoading(true);
     try {
       await api.post('/accounts/register/', form);
-      navigate(`/verify-otp?identifier=${encodeURIComponent(form.email)}`);
+      navigate('/login?registered=true');
     } catch (err) {
       const data = err.response?.data;
       if (data && typeof data === 'object') {
