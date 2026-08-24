@@ -2,10 +2,9 @@
 # exit on error
 set -o errexit
 
-echo "Installing requirements..."
-pip install -r requirements.txt
-
 echo "Running migrations..."
 python manage.py migrate
 
-echo "Build successful!"
+echo "Starting server..."
+# For Docker deployments, we also need to start gunicorn here
+gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 120 core.wsgi:application
