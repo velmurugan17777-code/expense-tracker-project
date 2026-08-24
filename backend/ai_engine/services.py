@@ -6,10 +6,15 @@ from expenses.repositories import ExpenseRepository
 from income.repositories import IncomeRepository
 
 
+import os
+import json
+from google import genai
+from google.genai import types
+
 class AIEngineService:
     """
     AI Engine Service.
-    A heuristic-based rule engine that simulates AI financial advice.
+    Uses Google Gemini for financial advice, falling back to heuristics if no API key is provided.
     """
 
     @staticmethod
@@ -46,15 +51,126 @@ class AIEngineService:
         # Budget
         budget = BudgetRepository.get_by_month_year(user, month, year)
         budget_amount = Decimal(str(budget.amount)) if budget else Decimal('0')
+        
+        # Category spending
+        category_spending = {}
+        for exp in expenses_this_month:
+            cat_name = exp.category.name if exp.category else "Uncategorized"
+            category_spending[cat_name] = float(category_spending.get(cat_name, Decimal('0')) + Decimal(str(exp.amount)))
 
-        # ─── Analysis ──────────────────────────────────────────────────
+        data = {
+            'month': month,
+            'year': year,
+            'total_spent': float(total_spent),
+            'total_spent_prev': float(total_spent_prev),
+            'total_income': float(total_income),
+            'budget_amount': float(budget_amount),
+            'category_spending': category_spending,
+            'first_name': user.first_name or user.username,
+        }
+
+        api_key = os.getenv('GEMINI_API_KEY')
+        if api_key:
+            try:
+                return AIEngineService._generate_gemini_advice(data, api_key)
+            except Exception as e:
+                print(f"[Gemini AI] Failed to generate advice: {e}")
+                # Fallback to heuristic
+                pass
+                
+        return AIEngineService._generate_heuristic_advice(data)
+
+    @staticmethod
+    def _generate_gemini_advice(data, api_key):
+        client = genai.Client(api_key=api_key)
+        
+        prompt = f"""
+        You are an expert financial advisor named 'SmartTracker AI'. 
+        Analyze the following financial data for {data['first_name']} for month {data['month']}/{data['year']}.
+        
+        Financial Data:
+        - Total Income: ${data['total_income']:.2f}
+        - Total Spent This Month: ${data['total_spent']:.2f}
+        - Total Spent Last Month: ${data['total_spent_prev']:.2f}
+        - Monthly Budget: ${data['budget_amount']:.2f}
+        - Spending by Category: {json.dumps(data['category_spending'])}
+        
+        Please provide a highly personalized, actionable financial analysis. 
+        You must strictly follow the response schema provided.
+        """
+        
+        # Define the exact JSON schema we want back
+        response_schema = {
+            "type": "OBJECT",
+            "properties": {
+                "status": {
+                    "type": "STRING",
+                    "description": "Must be one of: GOOD, WARNING, CRITICAL",
+                },
+                "score": {
+                    "type": "INTEGER",
+                    "description": "Financial health score from 0 to 100",
+                },
+                "advice": {
+                    "type": "ARRAY",
+                    "description": "A list of 3-5 specific advice items",
+                    "items": {
+                        "type": "OBJECT",
+                        "properties": {
+                            "icon": {"type": "STRING", "description": "A single emoji representing the advice"},
+                            "type": {"type": "STRING", "description": "Must be one of: info, success, warning, critical"},
+                            "title": {"type": "STRING", "description": "Short catchy title"},
+                            "text": {"type": "STRING", "description": "Detailed actionable advice sentence"}
+                        },
+                        "required": ["icon", "type", "title", "text"]
+                    }
+                }
+            },
+            "required": ["status", "score", "advice"]
+        }
+        
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=response_schema,
+                temperature=0.7,
+            ),
+        )
+        
+        ai_result = json.loads(response.text)
+        
+        return {
+            'status': ai_result['status'],
+            'score': ai_result['score'],
+            'summary': "Gemini AI Financial Analysis Complete",
+            'period': {'month': data['month'], 'year': data['year']},
+            'metrics': {
+                'total_income': data['total_income'],
+                'total_spent': data['total_spent'],
+                'total_spent_prev_month': data['total_spent_prev'],
+                'budget': data['budget_amount'],
+                'savings': data['total_income'] - data['total_spent'],
+            },
+            'advice': ai_result['advice'],
+        }
+
+    @staticmethod
+    def _generate_heuristic_advice(data):
+        total_spent = Decimal(str(data['total_spent']))
+        total_spent_prev = Decimal(str(data['total_spent_prev']))
+        total_income = Decimal(str(data['total_income']))
+        budget_amount = Decimal(str(data['budget_amount']))
+        category_spending = {k: Decimal(str(v)) for k, v in data['category_spending'].items()}
+        
         advice = []
         status = "GOOD"
-        score = 100  # Start with perfect financial health score
+        score = 100
 
         # 1. Budget vs Actual
-        if budget:
-            pct = (total_spent / budget_amount * 100) if budget_amount else 0
+        if budget_amount:
+            pct = (total_spent / budget_amount * 100)
             if total_spent > budget_amount:
                 status = "CRITICAL"
                 score -= 30
@@ -111,11 +227,6 @@ class AIEngineService:
                 })
 
         # 3. Category Spending Habits
-        category_spending = {}
-        for exp in expenses_this_month:
-            cat_name = exp.category.name if exp.category else "Uncategorized"
-            category_spending[cat_name] = category_spending.get(cat_name, Decimal('0')) + Decimal(str(exp.amount))
-
         if category_spending:
             top_cat = max(category_spending, key=category_spending.get)
             top_amt = category_spending[top_cat]
@@ -166,35 +277,13 @@ class AIEngineService:
                     "text": f"Your expenses (${total_spent:.2f}) exceed your income (${total_income:.2f}) by ${abs(savings):.2f}. Urgent action needed."
                 })
 
-        # 5. Prediction for month-end
-        day_of_month = today.day
-        days_in_month = 30
-        if day_of_month > 0 and total_spent > 0:
-            daily_avg = total_spent / day_of_month
-            projected = daily_avg * days_in_month
-            if budget_amount and projected > budget_amount:
-                score -= 5
-                advice.append({
-                    "icon": "🔮",
-                    "type": "warning",
-                    "title": "Month-End Prediction",
-                    "text": f"At your current pace, you'll spend ${projected:.2f} by month-end vs your ${budget_amount:.2f} budget. Slow down."
-                })
-            elif budget_amount:
-                advice.append({
-                    "icon": "🔮",
-                    "type": "info",
-                    "title": "Month-End Prediction",
-                    "text": f"At your current pace, you're projected to spend ${projected:.2f} by month-end — within your ${budget_amount:.2f} budget."
-                })
-
         score = max(0, min(100, score))
 
         return {
             'status': status,
             'score': score,
-            'summary': "AI Financial Analysis Complete",
-            'period': {'month': month, 'year': year},
+            'summary': "Heuristic AI Financial Analysis Complete",
+            'period': {'month': data['month'], 'year': data['year']},
             'metrics': {
                 'total_income': float(total_income),
                 'total_spent': float(total_spent),
